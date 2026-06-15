@@ -85,6 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Weight Converter" },
+      { name: "twitter:description", content: "A beautiful pounds to kilograms converter" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1bc32c75-fddb-495e-b4b5-440640f255fc/id-preview-a116ffad--7b1b1190-b99e-4cfe-8006-35db396807e5.lovable.app-1781561984061.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1bc32c75-fddb-495e-b4b5-440640f255fc/id-preview-a116ffad--7b1b1190-b99e-4cfe-8006-35db396807e5.lovable.app-1781561984061.png" },
     ],
     links: [
       {
