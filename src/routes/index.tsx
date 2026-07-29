@@ -35,6 +35,8 @@ function formatNumber(n: number): string {
 
 function Index() {
   const [pounds, setPounds] = useState<string>("");
+  const [medId, setMedId] = useState<string>("");
+
 
   const kilograms = useCallback(() => {
     const val = parseFloat(pounds);
