@@ -54,6 +54,14 @@ function Index() {
   const kg = kilograms();
   const hasValue = pounds !== "" && !Number.isNaN(parseFloat(pounds));
 
+  const med = MEDICATIONS.find((m) => m.id === medId);
+  const rawDose = med ? kg * med.dosePerKg : 0;
+  const exceedsMax = !!med && rawDose > med.maxDoseMg;
+  const cappedDose = med ? Math.min(rawDose, med.maxDoseMg) : 0;
+  const volumeMl = med ? cappedDose / med.concentrationMgPerMl : 0;
+  const showDose = hasValue && !!med && kg > 0;
+
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       <img
