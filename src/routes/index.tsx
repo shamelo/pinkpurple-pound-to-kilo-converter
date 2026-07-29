@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
-import { ArrowRightLeft, Scale } from "lucide-react";
+import { ArrowRightLeft, Scale, AlertTriangle, Pill } from "lucide-react";
 import bgImage from "../assets/gradient-bg.jpg";
+import { MEDICATIONS } from "@/lib/medications";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +35,8 @@ function formatNumber(n: number): string {
 
 function Index() {
   const [pounds, setPounds] = useState<string>("");
+  const [medId, setMedId] = useState<string>("");
+
 
   const kilograms = useCallback(() => {
     const val = parseFloat(pounds);
@@ -43,8 +54,16 @@ function Index() {
   const kg = kilograms();
   const hasValue = pounds !== "" && !Number.isNaN(parseFloat(pounds));
 
+  const med = MEDICATIONS.find((m) => m.id === medId);
+  const rawDose = med ? kg * med.dosePerKg : 0;
+  const exceedsMax = !!med && rawDose > med.maxDoseMg;
+  const cappedDose = med ? Math.min(rawDose, med.maxDoseMg) : 0;
+  const volumeMl = med ? cappedDose / med.concentrationMgPerMl : 0;
+  const showDose = hasValue && !!med && kg > 0;
+
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
       <img
         src={bgImage}
         alt=""
@@ -123,8 +142,91 @@ function Index() {
                 </p>
               </div>
             )}
+
+            <div className="border-t border-border/60 pt-6">
+              <label
+                htmlFor="medication"
+                className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground"
+              >
+                <Pill className="h-4 w-4 text-primary" />
+                Medication
+              </label>
+              <Select value={medId} onValueChange={setMedId}>
+                <SelectTrigger
+                  id="medication"
+                  className="h-auto w-full rounded-2xl border-input bg-secondary/50 px-5 py-4 text-base"
+                >
+                  <SelectValue placeholder="Select a medication" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEDICATIONS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {med && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {med.dosePerKg} mg/kg · {med.route} · {med.concentrationLabel}
+                </p>
+              )}
+
+              {showDose && med && (
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 px-5 py-4">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Recommended dose (based on weight)
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-primary">
+                      {formatNumber(cappedDose)} mg
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {med.dosePerKg} mg/kg × {formatNumber(kg)} kg
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-accent/40 bg-accent/30 px-5 py-4">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Total amount to administer
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-accent-foreground">
+                      {formatNumber(volumeMl)} mL
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Using {med.concentrationLabel}
+                    </p>
+                  </div>
+
+                  {exceedsMax && (
+                    <div className="flex gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      <p className="text-xs text-destructive">
+                        <span className="font-semibold">
+                          Warning: calculated dose exceeds the maximum allowed dose.
+                        </span>{" "}
+                        The weight-based calculation is {formatNumber(rawDose)} mg, which is above
+                        the maximum single dose of {formatNumber(med.maxDoseMg)} mg. The result
+                        shown has been capped at the maximum. {med.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 rounded-xl bg-secondary/60 px-4 py-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      These calculations are for reference only and should be verified against the
+                      approved prescribing information or your institutional guidelines before
+                      administration.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
           1 lb = {LBS_TO_KG.toFixed(8)} kg
