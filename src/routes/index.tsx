@@ -63,7 +63,7 @@ function Index() {
 
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
       <img
         src={bgImage}
         alt=""
