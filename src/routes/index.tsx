@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { ArrowRightLeft, Scale, AlertTriangle, Pill } from "lucide-react";
 import bgImage from "../assets/gradient-bg.jpg";
-import { MEDICATIONS } from "@/lib/medications";
+import { MEDICATIONS, type DoseUnit } from "@/lib/medications";
 import {
   Select,
   SelectContent,
@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,7 +35,7 @@ function formatNumber(n: number): string {
 function Index() {
   const [pounds, setPounds] = useState<string>("");
   const [medId, setMedId] = useState<string>("");
-
+  const [outputUnit, setOutputUnit] = useState<DoseUnit>("mg");
 
   const kilograms = useCallback(() => {
     const val = parseFloat(pounds);
@@ -55,12 +54,30 @@ function Index() {
   const hasValue = pounds !== "" && !Number.isNaN(parseFloat(pounds));
 
   const med = MEDICATIONS.find((m) => m.id === medId);
+
+  // Reset output unit to the medication's native unit when medication changes
+  useEffect(() => {
+    if (med) setOutputUnit(med.doseUnit);
+  }, [med?.id]);
+
   const rawDose = med ? kg * med.dosePerKg : 0;
-  const exceedsMax = !!med && rawDose > med.maxDoseMg;
-  const cappedDose = med ? Math.min(rawDose, med.maxDoseMg) : 0;
-  const volumeMl = med ? cappedDose / med.concentrationMgPerMl : 0;
+  const exceedsMax = !!med && rawDose > med.maxDose;
+  const cappedDose = med ? Math.min(rawDose, med.maxDose) : 0;
   const showDose = hasValue && !!med && kg > 0;
 
+  const compatibleUnits = useMemo<DoseUnit[]>(() => {
+    if (!med) return [];
+    const units: DoseUnit[] = [med.doseUnit];
+    if (med.concentrationValue > 0) units.push("mL");
+    return units;
+  }, [med]);
+
+  const displayValue = useMemo(() => {
+    if (!med) return 0;
+    if (outputUnit === med.doseUnit) return cappedDose;
+    if (outputUnit === "mL") return cappedDose / med.concentrationValue;
+    return cappedDose;
+  }, [med, outputUnit, cappedDose]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
@@ -172,8 +189,34 @@ function Index() {
 
               {med && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {med.dosePerKg} mg/kg · {med.route} · {med.concentrationLabel}
+                  {med.dosePerKg} {med.doseUnit}/kg · {med.route} · {med.concentrationLabel}
                 </p>
+              )}
+
+              {med && (
+                <div className="mt-4">
+                  <label
+                    htmlFor="unit"
+                    className="mb-2 block text-sm font-semibold text-foreground"
+                  >
+                    Output unit
+                  </label>
+                  <Select value={outputUnit} onValueChange={(value) => setOutputUnit(value as DoseUnit)}>
+                    <SelectTrigger
+                      id="unit"
+                      className="h-auto w-full rounded-2xl border-input bg-secondary/50 px-5 py-4 text-base"
+                    >
+                      <SelectValue placeholder="Select a unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {compatibleUnits.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit === "mL" ? "Milliliters (mL)" : unit === "mg" ? "Milligrams (mg)" : "International Units (IU)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
 
               {showDose && med && (
@@ -183,10 +226,12 @@ function Index() {
                       Recommended dose (based on weight)
                     </p>
                     <p className="mt-1 text-2xl font-bold text-primary">
-                      {formatNumber(cappedDose)} mg
+                      {formatNumber(displayValue)} {outputUnit}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {med.dosePerKg} mg/kg × {formatNumber(kg)} kg
+                      {outputUnit === "mL"
+                        ? `${formatNumber(cappedDose)} ${med.doseUnit} ÷ ${med.concentrationValue} ${med.concentrationUnit}`
+                        : `${med.dosePerKg} ${med.doseUnit}/kg × ${formatNumber(kg)} kg`}
                     </p>
                   </div>
 
@@ -195,10 +240,12 @@ function Index() {
                       Total amount to administer
                     </p>
                     <p className="mt-1 text-2xl font-bold text-accent-foreground">
-                      {formatNumber(volumeMl)} mL
+                      {formatNumber(displayValue)} {outputUnit}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Using {med.concentrationLabel}
+                      {outputUnit === "mL"
+                        ? `Using ${med.concentrationLabel}`
+                        : `Equivalent to ${formatNumber(cappedDose / med.concentrationValue)} mL`}
                     </p>
                   </div>
 
@@ -209,8 +256,8 @@ function Index() {
                         <span className="font-semibold">
                           Warning: calculated dose exceeds the maximum allowed dose.
                         </span>{" "}
-                        The weight-based calculation is {formatNumber(rawDose)} mg, which is above
-                        the maximum single dose of {formatNumber(med.maxDoseMg)} mg. The result
+                        The weight-based calculation is {formatNumber(rawDose)} {med.doseUnit}, which is above
+                        the maximum single dose of {formatNumber(med.maxDose)} {med.doseUnit}. The result
                         shown has been capped at the maximum. {med.notes}
                       </p>
                     </div>
@@ -229,7 +276,6 @@ function Index() {
             </div>
           </div>
         </div>
-
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
           1 lb = {LBS_TO_KG.toFixed(8)} kg
