@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
-import { ArrowRightLeft, Scale } from "lucide-react";
+import { ArrowRightLeft, Scale, AlertTriangle, Pill } from "lucide-react";
 import bgImage from "../assets/gradient-bg.jpg";
+import { MEDICATIONS } from "@/lib/medications";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
