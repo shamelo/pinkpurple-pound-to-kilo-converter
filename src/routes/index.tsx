@@ -143,6 +143,10 @@ function Index() {
               </div>
             )}
 
+            <h2 className="text-center text-xl font-bold tracking-tight text-gradient">
+              Dosage Calculator
+            </h2>
+
             <div className="border-t border-border/60 pt-6">
               <label
                 htmlFor="medication"
